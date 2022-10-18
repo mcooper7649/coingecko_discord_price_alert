@@ -19,27 +19,12 @@ const url = 'https://www.coingecko.com/en/coins/';
 const linkPrice = {};
 
 app.get('/', (req, res) => {
-  res.json('Welcome to the 4chan Webscraper API');
+  res.json('Welcome to the CoinGecko Webscraper & Discord BOT');
 });
 
-const getLink = async () => {
-  await axios(url).then((response) => {
-    const html = response.data;
-    const $ = cheerio.load(html);
-
-    const item = $('body > div.container ');
-    // console.log(item);
-
-    linkPrice.value = $(item).find('.no-wrap').first().text();
-    console.log(`Current price of link is ${linkPrice.value}`);
-  });
-};
-
-app.get('/link', (req, res) => {
-  setInterval(() => {
-    getLink();
-  }, 5000);
-});
+function relDiff(a, b) {
+  return 100 * Math.abs((a - b) / ((a + b) / 2));
+}
 
 const client = new Client({
   intents: [
@@ -91,9 +76,13 @@ client.on('messageCreate', async (message) => {
         linkPrice.value = $(item).find('.no-wrap').first().text();
         baseNumber = Number(linkPrice.value.replace(/[^0-9.-]+/g, ''));
         originalNumber = baseNumber;
-        console.log(`Setting BASE ${command} price: ${baseNumber}`);
+        console.log(
+          `Setting Market $${
+            command.charAt(0).toUpperCase() + command.substring(1)
+          } price: ${baseNumber}`
+        );
         message.channel.send(
-          `Setting BASE ${
+          `Setting Market ${
             command.charAt(0).toUpperCase() + command.substring(1)
           } price: $${baseNumber}. Checking every 30 seconds. Will notify IF price changes.`
         );
@@ -113,25 +102,55 @@ client.on('messageCreate', async (message) => {
 
           linkPrice.value = $(item).find('.no-wrap').first().text();
           newNumber = Number(linkPrice.value.replace(/[^0-9.-]+/g, ''));
-          console.log(`Price of ${command} is $${newNumber}`);
+          console.log(
+            `Current Price of ${
+              command.charAt(0).toUpperCase() + command.substring(1)
+            } is $${newNumber}`
+          );
         })
         .then(() => {
           if (newNumber != baseNumber) {
-            console.log(
-              `${
-                command.charAt(0).toUpperCase() + command.substring(1)
-              } Price Change ALERT! The Price of ${command} has changed to $${newNumber}.`
-            );
-            message.channel.send(
-              `${
-                command.charAt(0).toUpperCase() + command.substring(1)
-              } Price Change ALERT! The Price of ${command} has changed to $${newNumber}.`
-            );
+            let percentIncrease = relDiff(newNumber, baseNumber).toFixed(2);
+
+            if (newNumber > baseNumber) {
+              console.log(
+                `${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } Price Change 🚨ALERT🚨 The Price of ${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+              );
+              message.channel.send(
+                `${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } Price Change 🚨ALERT🚨 The Price of ${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+              );
+            }
+            if (newNumber < baseNumber) {
+              console.log(
+                `${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } Price Change 🚨ALERT🚨 The Price of ${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+              );
+              message.channel.send(
+                `${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } Price Change 🚨ALERT🚨 The Price of ${
+                  command.charAt(0).toUpperCase() + command.substring(1)
+                } has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+              );
+            }
 
             baseNumber = newNumber;
-            console.log(`BASE price UPDATED to $${baseNumber}`);
+            console.log(`Market price UPDATED to $${baseNumber}`);
             message.channel.send(
-              `BASE Price UPDATED to: $${baseNumber}. Original Price: $${originalNumber}.`
+              `Market Price UPDATED to: $${baseNumber}. Original Price of ${
+                command.charAt(0).toUpperCase() + command.substring(1)
+              }: $${originalNumber}.`
             );
           }
         })
