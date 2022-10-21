@@ -3,7 +3,6 @@ const express = require('express');
 const cheerio = require('cheerio');
 const axios = require('axios');
 const { Client, GatewayIntentBits } = require('discord.js');
-const { response } = require('express');
 
 require('dotenv').config(); //initialize dotenv
 const prefix = '>';
@@ -32,9 +31,9 @@ const client = new Client({
 });
 
 client.on('ready', () => {
-  console.log('Discord Bot Online');
+  console.log('CoinGecko Bot Online');
 
-  client.user.setActivity(`WAITING FOR COMMANDS: >bitcoin`);
+  client.user.setActivity(`ENTER A CMD >bitcoin`);
 });
 
 client.on('messageCreate', async (message) => {
