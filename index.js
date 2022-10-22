@@ -5,7 +5,6 @@ const { Client, GatewayIntentBits } = require('discord.js');
 
 const PORT = 8000;
 let SECONDS = 5;
-let INTERVAL = SECONDS * 1000;
 require('dotenv').config(); //initialize dotenv
 const prefix = '>';
 
@@ -184,7 +183,7 @@ client.on('messageCreate', async (message) => {
                     });
                 }
               });
-          }, INTERVAL);
+          }, SECONDS * 1000);
       });
   }
 });
