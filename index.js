@@ -4,7 +4,7 @@ const axios = require('axios');
 const { Client, GatewayIntentBits } = require('discord.js');
 
 const PORT = 8000;
-const SECONDS = 5;
+let SECONDS = 5;
 const INTERVAL = SECONDS * 1000;
 require('dotenv').config(); //initialize dotenv
 const prefix = '>';
@@ -56,11 +56,17 @@ client.on('messageCreate', async (message) => {
   }
 
   if (command === 'stop') {
-    message.channel.send('Halting Bots!');
-    process.exit(0);
+    message.channel.send('Halting Bots!').then(() => {
+      process.exit(0);
+    });
   }
 
-  if (command !== 'test') {
+  if (command == Number(command)) {
+    SECONDS = command;
+    message.channel.send(`Interval updated to ${SECONDS} SECONDS!`);
+  }
+
+  if (command !== 'test' || command !== Number(command)) {
     axios(`${url}${command}`)
       .then((response) => {
         const html = response.data;
@@ -170,7 +176,7 @@ client.on('messageCreate', async (message) => {
                 if (error.response.status === 404) {
                   message.channel
                     .send(
-                      `2. ${error.response.status} | ${error.response.statusText}`
+                      `2. ${error.response.status} | ${error.response.statusText} | Halting Bots`
                     )
                     .then(() => {
                       setImmediate(() => process.exit(0));
