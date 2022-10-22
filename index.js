@@ -105,7 +105,7 @@ client.on('messageCreate', async (message) => {
       })
       .finally(() => {
         console.log();
-        if (command != 'stop' || errorMsg != 404)
+        if (command != 'stop' || errorMsg != 404 || command !== Number(command))
           setInterval(() => {
             axios(`${url}${command}`)
               .then((response) => {
