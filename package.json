@@ -7,7 +7,7 @@
     "preinstall": "npm install pm2 -g",
     "start": "pm2-runtime index.js -i 1",
     "dev": "nodemon index.js",
-    "stop": "pm2 delete index.js"
+    "stop": "pm2-runtime delete index.js"
   },
   "author": "",
   "license": "ISC",

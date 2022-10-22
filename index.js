@@ -55,6 +55,11 @@ client.on('messageCreate', async (message) => {
     message.channel.send('Commands are currently working properly!');
   }
 
+  if (command === 'stop') {
+    message.channel.send('Halting Bots!');
+    process.exit(0);
+  }
+
   if (command !== 'test') {
     axios(`${url}${command}`)
       .then((response) => {
@@ -180,5 +185,5 @@ client.on('messageCreate', async (message) => {
 
 client.login(process.env.CLIENT_TOKEN);
 
-app.listen(process.env.PORT || 5000),
+app.listen(process.env.PORT || PORT),
   () => console.log(`Server running on PORT ${PORT}`);
