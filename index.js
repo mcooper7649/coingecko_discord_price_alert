@@ -66,7 +66,7 @@ client.on('messageCreate', async (message) => {
     message.channel.send(`Interval updated to ${SECONDS} SECONDS!`);
   }
 
-  if (command !== 'test' || command !== Number(command)) {
+  if (command != 'test') {
     axios(`${url}${command}`)
       .then((response) => {
         const html = response.data;
@@ -105,7 +105,7 @@ client.on('messageCreate', async (message) => {
       })
       .finally(() => {
         console.log();
-        if (command != 'stop' || errorMsg != 404 || command !== Number(command))
+        if (command != 'stop' || errorMsg != 404)
           setInterval(() => {
             axios(`${url}${command}`)
               .then((response) => {
