@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "preinstall": "npm I -g pm2",
-    "start": "pm2 start index.js --watch",
+    "start": "pm2-runtime start index.js --watch -i 1",
     "dev": "nodemon index.js"
   },
   "author": "",
