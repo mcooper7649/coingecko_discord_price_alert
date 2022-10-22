@@ -1,9 +1,11 @@
-const PORT = 8000;
 const express = require('express');
 const cheerio = require('cheerio');
 const axios = require('axios');
 const { Client, GatewayIntentBits } = require('discord.js');
 
+const PORT = 8000;
+const SECONDS = 5;
+const INTERVAL = SECONDS * 1000;
 require('dotenv').config(); //initialize dotenv
 const prefix = '>';
 
@@ -46,6 +48,7 @@ client.on('messageCreate', async (message) => {
   var newNumber;
   var baseNumber;
   var originalNumber;
+  var errorMsg;
 
   //commands
   if (command === 'test') {
@@ -58,10 +61,10 @@ client.on('messageCreate', async (message) => {
         const html = response.data;
         const $ = cheerio.load(html);
 
-        const item = $('body > div.container ');
-        // console.log(item);
+        const targetContainer = $('body > div.container ');
+        // console.log(targetContainer);
 
-        coinPrice.value = $(item).find('.no-wrap').first().text();
+        coinPrice.value = $(targetContainer).find('.no-wrap').first().text();
         baseNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
         originalNumber = baseNumber;
         console.log(
@@ -72,90 +75,105 @@ client.on('messageCreate', async (message) => {
         message.channel.send(
           `Setting Market ${
             command.charAt(0).toUpperCase() + command.substring(1)
-          } price: $${baseNumber}. Checking every 30 seconds. Will notify IF price changes.`
+          } price: $${baseNumber}. Checking every ${SECONDS} seconds. Will notify IF price changes.`
         );
       })
       .catch(function (error) {
         console.log(error.response.status);
         if (error.response.status === 404) {
-          throw new Error('404 | Token Not Found');
-        } else {
-          message.channel.send(
-            `1. ${error.response.status} | ${error.response.statusText}`
-          );
+          errorMsg = error.response.status;
+          message.channel
+            .send(
+              `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
+            )
+            .then(() => {
+              setImmediate(() => process.exit(0));
+              return null;
+            });
         }
       })
-      .then(() => {
-        setInterval(() => {
-          axios(`${url}${command}`)
-            .then((response) => {
-              const html = response.data;
-              const $ = cheerio.load(html);
+      .finally(() => {
+        console.log();
+        if (command != 'stop' || errorMsg != 404)
+          setInterval(() => {
+            axios(`${url}${command}`)
+              .then((response) => {
+                const html = response.data;
+                const $ = cheerio.load(html);
 
-              const item = $('body > div.container ');
-              // console.log(item);
+                const item = $('body > div.container ');
+                // console.log(item);
 
-              coinPrice.value = $(item).find('.no-wrap').first().text();
-              newNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
-              console.log(
-                `Current Price of ${
-                  command.charAt(0).toUpperCase() + command.substring(1)
-                } is $${newNumber}`
-              );
-            })
-            .then(() => {
-              if (newNumber != baseNumber) {
-                let percentIncrease = relDiff(newNumber, baseNumber).toFixed(2);
-
-                if (newNumber > baseNumber) {
-                  console.log(
-                    `${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } Price Change 🚨ALERT🚨 The Price of ${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                  );
-                  message.channel.send(
-                    `${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } Price Change 🚨ALERT🚨 The Price of ${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                  );
-                }
-                if (newNumber < baseNumber) {
-                  console.log(
-                    `${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } Price Change 🚨ALERT🚨 The Price of ${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                  );
-                  message.channel.send(
-                    `${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } Price Change 🚨ALERT🚨 The Price of ${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                  );
-                }
-
-                baseNumber = newNumber;
-                console.log(`Market price UPDATED to $${baseNumber}`);
-                message.channel.send(
-                  `Market Price UPDATED to: $${baseNumber}. Original Price of ${
+                coinPrice.value = $(item).find('.no-wrap').first().text();
+                newNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
+                console.log(
+                  `Current Price of ${
                     command.charAt(0).toUpperCase() + command.substring(1)
-                  }: $${originalNumber}.`
+                  } is $${newNumber}`
                 );
-              }
-            })
-            .catch(function (error) {
-              console.log(error.response.status);
-              message.channel.send(
-                `2. ${error.response.status} | ${error.response.statusText}`
-              );
-            });
-        }, 3000);
+              })
+              .then(() => {
+                if (newNumber != baseNumber) {
+                  let percentIncrease = relDiff(newNumber, baseNumber).toFixed(
+                    2
+                  );
+
+                  if (newNumber > baseNumber) {
+                    console.log(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                    );
+                    message.channel.send(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                    );
+                  }
+                  if (newNumber < baseNumber) {
+                    console.log(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+                    );
+                    message.channel.send(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+                    );
+                  }
+
+                  baseNumber = newNumber;
+                  console.log(`Market price UPDATED to $${baseNumber}`);
+                  message.channel.send(
+                    `Market Price UPDATED to: $${baseNumber}. Original Price of ${
+                      command.charAt(0).toUpperCase() + command.substring(1)
+                    }: $${originalNumber}.`
+                  );
+                }
+              })
+              .catch(function (error) {
+                console.log(error.response.status);
+                if (error.response.status === 404) {
+                  message.channel
+                    .send(
+                      `2. ${error.response.status} | ${error.response.statusText}`
+                    )
+                    .then(() => {
+                      setImmediate(() => process.exit(0));
+                      return null;
+                    });
+                }
+              });
+          }, INTERVAL);
       });
   }
 });
