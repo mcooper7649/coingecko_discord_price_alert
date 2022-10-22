@@ -180,4 +180,5 @@ client.on('messageCreate', async (message) => {
 
 client.login(process.env.CLIENT_TOKEN);
 
-app.listen(PORT, () => console.log(`Server running on PORT ${PORT}`));
+app.listen(process.env.PORT || 5000),
+  () => console.log(`Server running on PORT ${PORT}`);
