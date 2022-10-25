@@ -7,7 +7,8 @@ const PORT = 8000;
 SECONDS = 10;
 
 require('dotenv').config(); //initialize dotenv
-const prefix = '>';
+const prefix = '$';
+const prefix2 = '>';
 
 const app = express();
 
@@ -39,9 +40,17 @@ client.on('ready', () => {
 });
 
 client.on('messageCreate', async (message) => {
-  if (!message.content.startsWith(prefix) || message.author.bot) return;
+  if (
+    !message.content.startsWith(prefix) ||
+    message.author.bot ||
+    !message.content.startsWith(prefix2)
+  )
+    return;
   const args = message.content.slice(prefix.length).split(/ +/);
   const command = args.shift().toLowerCase();
+
+  const args2 = message.content.slice(prefix2.length).split(/ +/);
+  const interval = args2.shift().toLowerCase();
 
   //messages
 
@@ -49,6 +58,12 @@ client.on('messageCreate', async (message) => {
   var baseNumber;
   var originalNumber;
   var errorMsg;
+
+  // Intervals
+
+  if (interval === 'test') {
+    message.channel.send('Intervals are currently working properly!');
+  }
 
   //commands
   if (command === 'test') {
