@@ -4,7 +4,8 @@ const axios = require('axios');
 const { Client, GatewayIntentBits } = require('discord.js');
 
 const PORT = 8000;
-let SECONDS = 5;
+SECONDS = 10;
+
 require('dotenv').config(); //initialize dotenv
 const prefix = '>';
 
@@ -52,20 +53,21 @@ client.on('messageCreate', async (message) => {
   //commands
   if (command === 'test') {
     message.channel.send('Commands are currently working properly!');
-  }
-
-  if (command === 'stop') {
-    message.channel.send('Halting Bots!').then(() => {
+    return;
+  } else if (command === 'stop') {
+    message.channel.send('STOP Command Entered. Halting Bots!').then(() => {
       process.exit(0);
     });
   }
 
-  if (command == Number(command)) {
-    SECONDS = command;
-    message.channel.send(`Interval updated to ${SECONDS} SECONDS!`);
-  }
-
-  if (command != Number(command)) {
+  // if (command == Number(command)) {
+  //   global.SECONDS = command;
+  //   message.channel.send(
+  //     `Interval updated to ${global.SECONDS} SECONDS!`,
+  //     new Date(Date.now())
+  //   );
+  // }
+  else {
     axios(`${url}${command}`)
       .then((response) => {
         const html = response.data;
@@ -85,27 +87,12 @@ client.on('messageCreate', async (message) => {
         message.channel.send(
           `Setting Market ${
             command.charAt(0).toUpperCase() + command.substring(1)
-          } price: $${baseNumber}. Checking every ${SECONDS} seconds. Will notify IF price changes.`
+          } price: $${baseNumber}. Checking every ${
+            global.SECONDS
+          } seconds. Will notify IF price changes.`
         );
-      })
-      .catch(function (error) {
-        console.log(error.response.status);
-        if (error.response.status === 404) {
-          errorMsg = error.response.status;
-          message.channel
-            .send(
-              `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
-            )
-            .then(() => {
-              setImmediate(() => process.exit(0));
-              return null;
-            });
-        }
-      })
-      .finally(() => {
-        console.log();
-        if (command != 'stop' || errorMsg != 404 || command != Number(command))
-          setInterval(() => {
+        setInterval(
+          () => {
             axios(`${url}${command}`)
               .then((response) => {
                 const html = response.data;
@@ -116,10 +103,13 @@ client.on('messageCreate', async (message) => {
 
                 coinPrice.value = $(item).find('.no-wrap').first().text();
                 newNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
+
                 console.log(
                   `Current Price of ${
                     command.charAt(0).toUpperCase() + command.substring(1)
-                  } is $${newNumber}`
+                  } is $${newNumber}. Updating every ${
+                    global.SECONDS
+                  } seconds.  ${new Date(Date.now())}`
                 );
               })
               .then(() => {
@@ -175,15 +165,32 @@ client.on('messageCreate', async (message) => {
                 if (error.response.status === 404) {
                   message.channel
                     .send(
-                      `2. ${error.response.status} | ${error.response.statusText} | Halting Bots`
+                      `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
                     )
                     .then(() => {
-                      setImmediate(() => process.exit(0));
+                      setImmediate(() => clearInterval(setInterval));
                       return null;
                     });
                 }
               });
-          }, SECONDS * 1000);
+          },
+          global.SECONDS * 1000,
+          console.log(global.SECONDS, 'Interval hit', new Date(Date.now()))
+        );
+      })
+      .catch(function (error) {
+        console.log(error.response.status);
+        if (error.response.status === 404) {
+          errorMsg = error.response.status;
+          message.channel
+            .send(
+              `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
+            )
+            .then(() => {
+              setImmediate(() => process.exit(0));
+              return null;
+            });
+        }
       });
   }
 });
