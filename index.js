@@ -40,7 +40,7 @@ const client = new Client({
 
 client.on('ready', () => {
   console.log('CoinGecko Bot Online');
-  message.channel.send('Bot has come online!');
+  channel.send('Bot has come online!');
 
   client.user.setActivity(`ENTER A CMD >bitcoin`);
 });
