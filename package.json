@@ -4,11 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "preinstall": "npm install pm2 -g",
-    "start": "npm run start",
-    "dev": "nodemon index.js",
-    "stop": "pm2-runtime delete index.js",
-    "autostart": "pm2-runtime index.js -i 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",

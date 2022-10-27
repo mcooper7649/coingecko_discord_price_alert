@@ -47,6 +47,10 @@ client.on('ready', () => {
 client.on('messageCreate', async (message) => {
   let command;
   let interval = Number();
+  let stopInterval = () => {
+    clearInterval(myInterval);
+    return null;
+  };
 
   // if (!message.content.startsWith(prefix || prefix2 || message.author.bot))
   //   return;
@@ -61,150 +65,144 @@ client.on('messageCreate', async (message) => {
     if (command === 'test') {
       message.channel.send('Commands are currently working properly!');
       return;
-    } else {
-      axios(`${url}${command}`)
-        .then((response) => {
-          const html = response.data;
-          const $ = cheerio.load(html);
+    }
+    if (command === 'stop') {
+      message.channel.send('STOP Command Entered. Halting Bots!');
+      stopInterval();
+    }
+    axios(`${url}${command}`)
+      .then((response) => {
+        const html = response.data;
+        const $ = cheerio.load(html);
 
-          const targetContainer = $('body > div.container ');
-          // console.log(targetContainer);
+        const targetContainer = $('body > div.container ');
+        coinPrice.value = $(targetContainer).find('.no-wrap').first().text();
+        baseNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
+        originalNumber = baseNumber;
+        console.log(
+          `Setting Market ${
+            command.charAt(0).toUpperCase() + command.substring(1)
+          } price: $${baseNumber}`
+        );
+        message.channel.send(
+          `Setting Market ${
+            command.charAt(0).toUpperCase() + command.substring(1)
+          } price: $${baseNumber}. Checking every ${
+            global.SECONDS
+          } seconds. Will notify IF price changes.`
+        );
+        myInterval = setInterval(
+          () => {
+            axios(`${url}${command}`)
+              .then((response) => {
+                const html = response.data;
+                const $ = cheerio.load(html);
 
-          coinPrice.value = $(targetContainer).find('.no-wrap').first().text();
-          baseNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
-          originalNumber = baseNumber;
-          console.log(
-            `Setting Market ${
-              command.charAt(0).toUpperCase() + command.substring(1)
-            } price: $${baseNumber}`
-          );
-          message.channel.send(
-            `Setting Market ${
-              command.charAt(0).toUpperCase() + command.substring(1)
-            } price: $${baseNumber}. Checking every ${
-              global.SECONDS
-            } seconds. Will notify IF price changes.`
-          );
-          myInterval = setInterval(
-            () => {
-              axios(`${url}${command}`)
-                .then((response) => {
-                  const html = response.data;
-                  const $ = cheerio.load(html);
+                const item = $('body > div.container ');
+                // console.log(item);
 
-                  const item = $('body > div.container ');
-                  // console.log(item);
+                coinPrice.value = $(item).find('.no-wrap').first().text();
+                newNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
 
-                  coinPrice.value = $(item).find('.no-wrap').first().text();
-                  newNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
-
-                  console.log(
-                    `Current Price of ${
-                      command.charAt(0).toUpperCase() + command.substring(1)
-                    } is $${newNumber}. Updating every ${
-                      global.SECONDS
-                    } seconds.  ${new Date(Date.now())}`
+                console.log(
+                  `Current Price of ${
+                    command.charAt(0).toUpperCase() + command.substring(1)
+                  } is $${newNumber}. Updating every ${
+                    global.SECONDS
+                  } seconds.  ${new Date(Date.now())}`
+                );
+              })
+              .then(() => {
+                if (newNumber != baseNumber) {
+                  let percentIncrease = relDiff(newNumber, baseNumber).toFixed(
+                    2
                   );
-                })
-                .then(() => {
-                  if (newNumber != baseNumber) {
-                    let percentIncrease = relDiff(
-                      newNumber,
-                      baseNumber
-                    ).toFixed(2);
 
-                    if (newNumber > baseNumber) {
-                      console.log(
-                        `${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } Price Change 🚨ALERT🚨 The Price of ${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                      );
-                      message.channel.send(
-                        `${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } Price Change 🚨ALERT🚨 The Price of ${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                      );
-                    }
-                    if (newNumber < baseNumber) {
-                      console.log(
-                        `${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } Price Change 🚨ALERT🚨 The Price of ${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                      );
-                      message.channel.send(
-                        `${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } Price Change 🚨ALERT🚨 The Price of ${
-                          command.charAt(0).toUpperCase() + command.substring(1)
-                        } has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                      );
-                    }
-
-                    baseNumber = newNumber;
-                    console.log(`Market price UPDATED to $${baseNumber}`);
-                    message.channel.send(
-                      `Market Price UPDATED to: $${baseNumber}. Original Price of ${
+                  if (newNumber > baseNumber) {
+                    console.log(
+                      `${
                         command.charAt(0).toUpperCase() + command.substring(1)
-                      }: $${originalNumber}.`
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                    );
+                    message.channel.send(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
                     );
                   }
-                })
-                .catch(function (error) {
-                  console.log(error.response.status);
-                  if (error.response.status === 404) {
-                    message.channel
-                      .send(
-                        `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
-                      )
-                      .then(() => {
-                        setImmediate(() => clearInterval(setInterval));
-                        return null;
-                      });
+                  if (newNumber < baseNumber) {
+                    console.log(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+                    );
+                    message.channel.send(
+                      `${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } Price Change 🚨ALERT🚨 The Price of ${
+                        command.charAt(0).toUpperCase() + command.substring(1)
+                      } has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+                    );
                   }
-                });
-            },
-            global.SECONDS * 1000,
-            console.log(global.SECONDS, 'Interval hit', new Date(Date.now()))
-          );
-        })
-        .catch(function (error) {
-          console.log(error.response.status);
-          if (error.response.status === 404) {
-            errorMsg = error.response.status;
-            message.channel
-              .send(
-                `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
-              )
-              .then(() => {
-                setImmediate(() => process.exit(0));
-                return null;
+
+                  baseNumber = newNumber;
+                  console.log(`Market price UPDATED to $${baseNumber}`);
+                  message.channel.send(
+                    `Market Price UPDATED to: $${baseNumber}. Original Price of ${
+                      command.charAt(0).toUpperCase() + command.substring(1)
+                    }: $${originalNumber}.`
+                  );
+                }
+              })
+              .catch(function (error) {
+                console.log(error.response.status);
+                if (error.response.status === 404) {
+                  message.channel
+                    .send(
+                      `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
+                    )
+                    .then(() => {
+                      stopInterval();
+                    });
+                }
               });
-          }
-        });
-    }
+          },
+          global.SECONDS * 1000,
+          console.log(global.SECONDS, 'Interval hit', new Date(Date.now()))
+        );
+      })
+      .catch(function (error) {
+        console.log(error.response.status);
+        if (error.response.status === 404) {
+          message.channel
+            .send(
+              `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
+            )
+            .then(() => {
+              stopInterval();
+            });
+        }
+      });
   }
 
   if (message.content.startsWith(prefix2)) {
     const args2 = message.content.slice(prefix2.length).split(/ +/);
     interval = args2.shift().toLowerCase();
-    // Intervalse
+    // Intervals
     console.log(typeof interval);
 
     if (typeof interval !== Number(interval)) {
       if (interval === 'stop') {
-        let stopInterval = () => {
-          clearInterval(myInterval);
-          return null;
-        };
         message.channel.send('STOP Command Entered. Halting Bots!');
         stopInterval();
       } else {
+        stopInterval();
         global.SECONDS = Number(interval);
         console.log(global.SECONDS);
         message.channel.send(`Updated Interval to ${interval}`);
