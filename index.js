@@ -79,6 +79,7 @@ client.on('messageCreate', async (message) => {
       console.log('Interval Interrupted');
     } else {
       cmdArray.push(command);
+
       console.log(cmdArray);
 
       cmdArray.map((command) => {
@@ -117,6 +118,7 @@ client.on('messageCreate', async (message) => {
               () => {
                 axios(`${url}${command}`)
                   .then((response) => {
+                    cmdArray = cmdArray.filter((item) => item !== command);
                     const html = response.data;
                     const $ = cheerio.load(html);
                     const item = $('body > div.container ');
