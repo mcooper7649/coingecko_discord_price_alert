@@ -8,12 +8,13 @@ SECONDS = 5;
 
 require('dotenv').config(); //initialize dotenv
 const prefix = '$';
-const prefix2 = '>';
+const prefix2 = '^';
+const prefix3 = '%';
 
 // var newNumber;
 
 const coinPrice = {};
-let cmdArray = [];
+let cmdList = new Set();
 const app = express();
 
 const url = 'https://www.coingecko.com/en/coins/';
@@ -70,19 +71,20 @@ client.on('messageCreate', async (message) => {
       return;
     }
     if (command === 'stop') {
+      cmdList.clear();
+      stopInterval();
+      console.log('Interval Interrupted');
       message = await message.reply({
         content: 'Bots Halted. Bots Awaiting New Commands',
         fetchReply: true,
       });
       message.react('☠️');
-      stopInterval();
-      console.log('Interval Interrupted');
     } else {
-      cmdArray.push(command);
+      cmdList.add(command);
 
-      console.log(cmdArray);
+      console.log(cmdList);
 
-      cmdArray.map((command) => {
+      cmdList.forEach((command) => {
         axios(`${url}${command}`)
           .then((response) => {
             const html = response.data;
@@ -118,7 +120,6 @@ client.on('messageCreate', async (message) => {
               () => {
                 axios(`${url}${command}`)
                   .then((response) => {
-                    cmdArray = cmdArray.filter((item) => item !== command);
                     const html = response.data;
                     const $ = cheerio.load(html);
                     const item = $('body > div.container ');
@@ -198,7 +199,9 @@ client.on('messageCreate', async (message) => {
           });
       });
     }
-  } else if (message.content.startsWith(prefix2)) {
+  }
+
+  if (message.content.startsWith(prefix2)) {
     const args2 = message.content.slice(prefix2.length).split(/ +/);
     interval = args2.shift().toLowerCase();
     // Intervals
