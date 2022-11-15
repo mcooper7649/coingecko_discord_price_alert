@@ -5,6 +5,8 @@ const { Client, GatewayIntentBits } = require('discord.js');
 
 const PORT = 8000;
 SECONDS = 5;
+minChange = 0.00999;
+halted = false;
 
 require('dotenv').config(); //initialize dotenv
 const prefix = '$';
@@ -44,6 +46,7 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (message) => {
   let command;
+  let minPercentChange = Number();
   // let myInterval = () => {};
   let interval = Number();
   let stopInterval = () => {
@@ -71,6 +74,7 @@ client.on('messageCreate', async (message) => {
       return;
     }
     if (command === 'stop') {
+      global.halted = true;
       cmdList.clear();
       stopInterval();
       console.log('Interval Interrupted');
@@ -80,6 +84,7 @@ client.on('messageCreate', async (message) => {
       });
       message.react('☠️');
     } else {
+      global.halted = false;
       cmdList.add(command);
 
       console.log(cmdList);
@@ -118,68 +123,84 @@ client.on('messageCreate', async (message) => {
 
             global.myInterval = setInterval(
               () => {
-                axios(`${url}${command}`)
-                  .then((response) => {
-                    const html = response.data;
-                    const $ = cheerio.load(html);
-                    const item = $('body > div.container ');
+                if (global.halted != true) {
+                  axios(`${url}${command}`)
+                    .then((response) => {
+                      const html = response.data;
+                      const $ = cheerio.load(html);
+                      const item = $('body > div.container ');
 
-                    coinPrice.value = $(item).find('.no-wrap').first().text();
-                    global.newNumber = Number(
-                      coinPrice.value.replace(/[^0-9.-]+/g, '')
-                    );
-                    console.log(
-                      `Current Price of ${correctNumber} is $${newNumber}. Updating every ${
-                        global.SECONDS
-                      } seconds.  ${new Date(Date.now())}`
-                    );
-                  })
-                  .then(() => {
-                    if (newNumber != baseNumber) {
-                      if (newNumber > baseNumber) {
-                        let percentIncrease = relDiff(
-                          newNumber,
-                          baseNumber
-                        ).toFixed(2);
-                        console.log(
-                          `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                        );
-                        message.channel.send(
-                          `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                        );
-                      }
-                      if (newNumber < baseNumber) {
-                        let percentIncrease = relDiff(
-                          baseNumber,
-                          newNumber
-                        ).toFixed(2);
-                        console.log(
-                          `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                        );
-                        message.channel.send(
-                          `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                        );
-                      }
-
-                      baseNumber = newNumber;
-                      console.log(`Market price UPDATED to $${baseNumber}`);
-                      message.channel.send(
-                        `Market Price UPDATED to: $${baseNumber}. Original Price of ${correctNumber}: $${originalNumber}.`
+                      coinPrice.value = $(item).find('.no-wrap').first().text();
+                      global.newNumber = Number(
+                        coinPrice.value.replace(/[^0-9.-]+/g, '')
                       );
-                    }
-                  })
-                  .catch(function (error) {
-                    console.log(error.response.status);
-                    if (error.response.status === 404) {
-                      message.channel
-                        .send(
-                          `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
-                        )
-                        .then(() => {
-                          stopInterval();
-                        });
-                    }
-                  });
+                      console.log(
+                        `Current Price of ${correctNumber} is $${newNumber}. Updating every ${
+                          global.SECONDS
+                        } seconds.  ${new Date(Date.now())}`
+                      );
+                    })
+                    .then(() => {
+                      if (newNumber != baseNumber) {
+                        if (newNumber > baseNumber) {
+                          let percentIncrease = relDiff(
+                            newNumber,
+                            baseNumber
+                          ).toFixed(2);
+                          if (percentIncrease > global.minChange) {
+                            console.log(
+                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                            );
+                            message.channel.send(
+                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                            );
+                            baseNumber = newNumber;
+                            console.log(
+                              `Market price UPDATED to $${baseNumber}`
+                            );
+                            message.channel.send(
+                              `Market Price UPDATED to: $${baseNumber}. Original Price of ${correctNumber}: $${originalNumber}.`
+                            );
+                          }
+                        }
+
+                        if (newNumber < baseNumber) {
+                          let percentIncrease = relDiff(
+                            baseNumber,
+                            newNumber
+                          ).toFixed(2);
+
+                          if (percentIncrease > global.minChange) {
+                            console.log(
+                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+                            );
+                            message.channel.send(
+                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
+                            );
+                            baseNumber = newNumber;
+                            console.log(
+                              `Market price UPDATED to $${baseNumber}`
+                            );
+                            message.channel.send(
+                              `Market Price UPDATED to: $${baseNumber}. Original Price of ${correctNumber}: $${originalNumber}.`
+                            );
+                          }
+                        }
+                      }
+                    })
+                    .catch(function (error) {
+                      console.log(error.response.status);
+                      if (error.response.status === 404) {
+                        message.channel
+                          .send(
+                            `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
+                          )
+                          .then(() => {
+                            stopInterval();
+                          });
+                      }
+                    });
+                }
               },
               global.SECONDS * 1000,
               console.log(global.SECONDS, 'Interval hit', new Date(Date.now()))
@@ -217,6 +238,30 @@ client.on('messageCreate', async (message) => {
         global.SECONDS = Number(interval);
         console.log(global.SECONDS);
         message.channel.send(`Updated Interval to ${interval}`);
+      }
+    }
+
+    //messagesss
+  }
+
+  if (message.content.startsWith(prefix3)) {
+    const args2 = message.content.slice(prefix3.length).split(/ +/);
+    minPercentChange = args2.shift().toLowerCase();
+    // Intervals
+    if (typeof minPercentChange !== Number(minPercentChange)) {
+      if (minPercentChange === 'stop') {
+        message = await message.reply({
+          content: 'Bots Halted. Bots Awaiting New Commands',
+          fetchReply: true,
+        });
+        message.react('☠️');
+        stopInterval();
+      } else {
+        global.minChange = Number(minPercentChange);
+        console.log(global.minChange);
+        message.channel.send(
+          `Updated Percent Change Minimum to ${minPercentChange}`
+        );
       }
     }
 

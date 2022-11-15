@@ -37,3 +37,16 @@ Welcome to the **CoinGecko Discord Notificaiton Bot** Documenation
       - Description: Updates the Interval or call additional Bot commands.
       - ==Notable info: All Interval Commands will STOP Running Price Checks. Recommand Setting interval PRIOR to entering token commands.==
         > Example use: `>5` `>stop`
+
+### Starting Server Commands
+
+1. Command to start AWS instance from terminal and exit without shutdown
+
+   - setsid nohup node index.js &
+   - [More Info](https://discord.com/channels/929573245571719198/1000433053467938969/1036996437336141844)
+
+### Stopping Server Commands
+
+2. This command retrieves running processes on machine so we can kill it later.
+   - ps aux to find the PID of the node index running process
+3. kill -9 {processIdNumber}
