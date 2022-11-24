@@ -85,140 +85,165 @@ client.on('messageCreate', async (message) => {
       message.react('☠️');
     } else {
       global.halted = false;
-      cmdList.add(command);
+      if (cmdList.has(command)) {
+        console.log('This Token is Already in List');
+      } else {
+        cmdList.add(command);
+        cmdList.forEach((command) => {
+          axios(`${url}${command}`)
+            .then((response) => {
+              const html = response.data;
+              const $ = cheerio.load(html);
+              const targetContainer = $('body > div.container ');
+
+              //Assigning Variables
+
+              //Current Rank
+              let coinRank = $(targetContainer)
+                .find('tr:nth-child(5) > td > span')
+                .text();
+
+              coinRank = coinRank.replace(/[^0-9#.-]+/g, '');
+              //Current Price
+              coinPrice.value = $(targetContainer)
+                .find('.no-wrap')
+                .first()
+                .text();
+
+              let baseNumber = Number(
+                coinPrice.value.replace(/[^0-9.-]+/g, '')
+              );
+              console.log(
+                `Setting Market ${command} price: $${baseNumber}. ${command} is currently ranked ${coinRank}`
+              );
+              let projectName =
+                command.charAt(0).toUpperCase() + command.substring(1);
+              message.channel.send(
+                `Setting Market ${projectName} price: $${baseNumber}. Checking every ${global.SECONDS} seconds. Will notify IF price changes. ${projectName} is currently ranked ${coinRank} on CoinGecko.`
+              );
+
+              global.myInterval = setInterval(
+                () => {
+                  if (global.halted != true) {
+                    axios(`${url}${command}`)
+                      .then((response) => {
+                        const html = response.data;
+                        const $ = cheerio.load(html);
+                        const item = $('body > div.container ');
+
+                        coinPrice.oneHour = $(targetContainer)
+                          .find(
+                            'div.my-4 > div:nth-child(2) > div.tw-flex-1.py-2.border.px-0.tw-rounded-md.tw-rounded-t-none.tw-rounded-r-none > span'
+                          )
+                          .text();
+
+                        coinPrice.oneDay = $(targetContainer)
+                          .find(
+                            'div.my-4 > div:nth-child(2) > div:nth-child(2) > span'
+                          )
+                          .text();
+
+                        console.log(coinPrice.oneDay);
+
+                        coinPrice.value = $(item)
+                          .find('.no-wrap')
+                          .first()
+                          .text();
+                        global.newNumber = Number(
+                          coinPrice.value.replace(/[^0-9.-]+/g, '')
+                        );
+                        console.log(
+                          `Current Price of ${projectName} is $${newNumber}. Updating every ${
+                            global.SECONDS
+                          } seconds.  ${new Date(Date.now())}`
+                        );
+                      })
+                      .then(() => {
+                        if (newNumber != baseNumber) {
+                          if (newNumber > baseNumber) {
+                            let percentIncrease = relDiff(
+                              newNumber,
+                              baseNumber
+                            ).toFixed(2);
+                            if (percentIncrease > global.minChange) {
+                              console.log(
+                                `${projectName} Price Change 🚨ALERT🚨 The Price of ${projectName} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                              );
+                              message.channel.send(
+                                `${projectName} Price Change 🚨ALERT🚨 The Price of ${projectName} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
+                              );
+                              baseNumber = newNumber;
+                              console.log(
+                                `Market price UPDATED to $${baseNumber}`
+                              );
+                              message.channel.send(
+                                `Market Price UPDATED to: $${baseNumber}. Price of ${projectName} has changed ${coinPrice.oneHour} in the last hour and ${coinPrice.oneDay} in the last 24 hours.`
+                              );
+                            }
+                          }
+
+                          if (newNumber < baseNumber) {
+                            let percentDecrease = relDiff(
+                              baseNumber,
+                              newNumber
+                            ).toFixed(2);
+
+                            if (percentDecrease > global.minChange) {
+                              console.log(
+                                `${projectName} Price Change 🚨ALERT🚨 The Price of ${projectName} has decreased 🔻🔻 by ${percentDecrease}% to $${newNumber}.`
+                              );
+                              message.channel.send(
+                                `${projectName} Price Change 🚨ALERT🚨 The Price of ${projectName} has decreased🔻🔻 by ${percentDecrease}% to $${newNumber}.`
+                              );
+                              baseNumber = newNumber;
+                              console.log(
+                                `Market price UPDATED to $${baseNumber}`
+                              );
+                              message.channel.send(
+                                `Market Price UPDATED to: $${baseNumber}. Price of ${projectName} has changed ${coinPrice.oneHour} in the last hour and ${coinPrice.oneDay} in the last 24 hours.`
+                              );
+                            }
+                          }
+                        }
+                      })
+                      .catch(function (error) {
+                        console.log(error.response.status);
+                        if (error.response.status === 404) {
+                          message.channel
+                            .send(
+                              `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
+                            )
+                            .then(() => {
+                              stopInterval();
+                            });
+                        }
+                      });
+                  }
+                },
+                global.SECONDS * 1000,
+                console.log(
+                  global.SECONDS,
+                  'Interval hit',
+                  new Date(Date.now())
+                )
+              );
+            })
+            .catch(function (error) {
+              console.log(error.response.status);
+              if (error.response.status === 404) {
+                message.channel
+                  .send(
+                    `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
+                  )
+                  .then(() => {
+                    stopInterval();
+                  });
+              }
+            });
+        });
+      }
 
       console.log(cmdList);
-
-      cmdList.forEach((command) => {
-        axios(`${url}${command}`)
-          .then((response) => {
-            const html = response.data;
-            const $ = cheerio.load(html);
-            const targetContainer = $('body > div.container ');
-
-            //Assigning Variables
-
-            //Current Rank
-            let coinRank = $(targetContainer)
-              .find('tr:nth-child(5) > td > span')
-              .text();
-
-            coinRank = coinRank.replace(/[^0-9#.-]+/g, '');
-            //Current Price
-            coinPrice.value = $(targetContainer)
-              .find('.no-wrap')
-              .first()
-              .text();
-
-            let baseNumber = Number(coinPrice.value.replace(/[^0-9.-]+/g, ''));
-            let originalNumber = baseNumber;
-            console.log(
-              `Setting Market ${command} price: $${baseNumber}. ${command} is currently ranked ${coinRank}`
-            );
-            let correctNumber =
-              command.charAt(0).toUpperCase() + command.substring(1);
-            message.channel.send(
-              `Setting Market ${correctNumber} price: $${baseNumber}. Checking every ${global.SECONDS} seconds. Will notify IF price changes. ${correctNumber} is currently ranked ${coinRank} on CoinGecko.`
-            );
-
-            global.myInterval = setInterval(
-              () => {
-                if (global.halted != true) {
-                  axios(`${url}${command}`)
-                    .then((response) => {
-                      const html = response.data;
-                      const $ = cheerio.load(html);
-                      const item = $('body > div.container ');
-
-                      coinPrice.value = $(item).find('.no-wrap').first().text();
-                      global.newNumber = Number(
-                        coinPrice.value.replace(/[^0-9.-]+/g, '')
-                      );
-                      console.log(
-                        `Current Price of ${correctNumber} is $${newNumber}. Updating every ${
-                          global.SECONDS
-                        } seconds.  ${new Date(Date.now())}`
-                      );
-                    })
-                    .then(() => {
-                      if (newNumber != baseNumber) {
-                        if (newNumber > baseNumber) {
-                          let percentIncrease = relDiff(
-                            newNumber,
-                            baseNumber
-                          ).toFixed(2);
-                          if (percentIncrease > global.minChange) {
-                            console.log(
-                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                            );
-                            message.channel.send(
-                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has increased 🔼🔼 by ${percentIncrease}% to $${newNumber}.`
-                            );
-                            baseNumber = newNumber;
-                            console.log(
-                              `Market price UPDATED to $${baseNumber}`
-                            );
-                            message.channel.send(
-                              `Market Price UPDATED to: $${baseNumber}. Original Price of ${correctNumber}: $${originalNumber}.`
-                            );
-                          }
-                        }
-
-                        if (newNumber < baseNumber) {
-                          let percentIncrease = relDiff(
-                            baseNumber,
-                            newNumber
-                          ).toFixed(2);
-
-                          if (percentIncrease > global.minChange) {
-                            console.log(
-                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has decreased 🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                            );
-                            message.channel.send(
-                              `${correctNumber} Price Change 🚨ALERT🚨 The Price of ${correctNumber} has decreased🔻🔻 by ${percentIncrease}% to $${newNumber}.`
-                            );
-                            baseNumber = newNumber;
-                            console.log(
-                              `Market price UPDATED to $${baseNumber}`
-                            );
-                            message.channel.send(
-                              `Market Price UPDATED to: $${baseNumber}. Original Price of ${correctNumber}: $${originalNumber}.`
-                            );
-                          }
-                        }
-                      }
-                    })
-                    .catch(function (error) {
-                      console.log(error.response.status);
-                      if (error.response.status === 404) {
-                        message.channel
-                          .send(
-                            `2. ${error.response.status} | ${error.response.statusText} | Interval Halted`
-                          )
-                          .then(() => {
-                            stopInterval();
-                          });
-                      }
-                    });
-                }
-              },
-              global.SECONDS * 1000,
-              console.log(global.SECONDS, 'Interval hit', new Date(Date.now()))
-            );
-          })
-          .catch(function (error) {
-            console.log(error.response.status);
-            if (error.response.status === 404) {
-              message.channel
-                .send(
-                  `1. ${error.response.status} | COIN ${error.response.statusText} | Bots Halted. Enter Commands again`
-                )
-                .then(() => {
-                  stopInterval();
-                });
-            }
-          });
-      });
     }
   }
 
@@ -241,7 +266,7 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-    //messagesss
+    //messages
   }
 
   if (message.content.startsWith(prefix3)) {
@@ -264,8 +289,6 @@ client.on('messageCreate', async (message) => {
         );
       }
     }
-
-    //messagesss
   }
 });
 
